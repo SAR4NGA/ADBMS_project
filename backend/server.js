@@ -19,9 +19,11 @@ connectDB();
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const budgetRoutes = require('./routes/budget');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/budget', budgetRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 const expenseRoutes = require('./routes/expenseRoutes');
 app.use('/api/expenses', expenseRoutes);
