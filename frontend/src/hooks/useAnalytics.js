@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAnalytics } from '../services/analyticsService';
 
 export function useAnalytics() {
-  const [analytics, setAnalytics] = useState(null);
+  const [analytics, setAnalytics] = useState({
+    historicalTrends: [],
+    forecast: 0,
+    supplierProfiles: [],
+    efficiencyKPIs: { RejectionRate: 0, AvgApprovalDays: 0 }
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 

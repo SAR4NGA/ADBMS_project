@@ -4,78 +4,48 @@ const getDashboardStats = async (req, res) => {
     try {
         const pool = await getDBPool();
 
-        // 1. Total Expenses (Approved)
-        const totalResult = await pool.request().query("SELECT SUM(TotalAmount) as Total FROM ExpenseHeader WHERE StatusID = 2");
-        const totalExpenses = totalResult.recordset[0].Total || 0;
+        // Execute the advanced T-SQL stored procedure
+        const result = await pool.request().execute('sp_GetDashboardStats');
+        
+        // result.recordsets is an array of tables returned by the stored procedure.
+        // Recordset 0: Metadata (ActiveYear, ActiveMonth)
+        // Recordset 1: KPIs
+        // Recordset 2: Category Spend
+        // Recordset 3: Top 5 Suppliers
+        // Recordset 4: Payment Methods
+        // Recordset 5: Alerts
+        // Recordset 6: Recent Activity
 
-        // 2. Pending Approvals
-        const pendingResult = await pool.request().query("SELECT COUNT(*) as Count FROM ExpenseHeader WHERE StatusID = 1");
-        const pendingApprovals = pendingResult.recordset[0].Count || 0;
+        const metadata = result.recordsets[0][0];
+        const kpis = result.recordsets[1][0];
+        const categorySpend = result.recordsets[2];
+        const topSuppliers = result.recordsets[3];
+        const paymentMethods = result.recordsets[4];
+        const alerts = result.recordsets[5];
+        const recentActivity = result.recordsets[6];
 
-        // 3. Active Suppliers
-        const suppliersResult = await pool.request().query("SELECT COUNT(*) as Count FROM Supplier");
-        const activeSuppliers = suppliersResult.recordset[0].Count || 0;
-
-        // 4. Monthly Trend (Compare this month to last month)
-        const trendResult = await pool.request().query(`
-            SELECT 
-                ISNULL((SELECT SUM(TotalAmount) FROM ExpenseHeader e JOIN DateDimension d ON e.DateKey = d.DateKey WHERE e.StatusID = 2 AND d.CalendarYear = YEAR(GETDATE()) AND MONTH(d.FullDate) = MONTH(GETDATE())), 0) as ThisMonth,
-                ISNULL((SELECT SUM(TotalAmount) FROM ExpenseHeader e JOIN DateDimension d ON e.DateKey = d.DateKey WHERE e.StatusID = 2 AND d.CalendarYear = YEAR(DATEADD(month, -1, GETDATE())) AND MONTH(d.FullDate) = MONTH(DATEADD(month, -1, GETDATE()))), 0) as LastMonth
-        `);
-        const { ThisMonth, LastMonth } = trendResult.recordset[0];
-        let trendString = "+0%";
-        let trendValue = 0;
-        if (LastMonth > 0) {
-            trendValue = ((ThisMonth - LastMonth) / LastMonth) * 100;
-            trendString = trendValue > 0 ? `+${trendValue.toFixed(1)}%` : `${trendValue.toFixed(1)}%`;
-        }
-
-        // 5. Chart Data (Last 6 Months)
-        const chartResult = await pool.request().query(`
-            SELECT TOP 6
-                d.MonthName as name,
-                d.CalendarYear,
-                SUM(e.TotalAmount) as amount,
-                MONTH(d.FullDate) as monthNum
-            FROM ExpenseHeader e
-            JOIN DateDimension d ON e.DateKey = d.DateKey
-            WHERE e.StatusID = 2
-            GROUP BY d.MonthName, d.CalendarYear, MONTH(d.FullDate)
-            ORDER BY d.CalendarYear DESC, MONTH(d.FullDate) DESC
-        `);
-
-        // Reverse to show chronologically
-        const chartData = chartResult.recordset.reverse();
-
-        // 6. Recent Activity
-        const activityResult = await pool.request().query(`
-            SELECT TOP 5 
-                e.ExpenseID,
-                e.TotalAmount, 
-                e.Description, 
-                d.FullDate,
-                s.SupplierName,
-                st.StatusName
-            FROM ExpenseHeader e
-            JOIN DateDimension d ON e.DateKey = d.DateKey
-            LEFT JOIN Supplier s ON e.SupplierID = s.SupplierID
-            JOIN ExpenseStatus st ON e.StatusID = st.StatusID
-            ORDER BY e.ExpenseID DESC
-        `);
+        // Format stats for frontend
+        const stats = {
+            totalExpenses: kpis.MTDExpenses,
+            dailySpend: kpis.DailySpend,
+            activeSuppliers: kpis.ActiveSuppliers,
+            pendingApprovals: kpis.PendingApprovalsCount,
+            pendingApprovalsValue: kpis.PendingApprovalsValue,
+            budgetUtilization: kpis.TotalBudget > 0 ? ((kpis.TotalSpentInBudget / kpis.TotalBudget) * 100).toFixed(1) : 0,
+            activePeriod: { year: metadata.ActiveYear, month: metadata.ActiveMonth }
+        };
 
         res.json({
-            stats: {
-                totalExpenses,
-                monthlyTrend: trendString,
-                activeSuppliers,
-                pendingApprovals
-            },
-            chartData,
-            recentActivity: activityResult.recordset
+            stats,
+            categorySpend,
+            topSuppliers,
+            paymentMethods,
+            alerts,
+            recentActivity
         });
 
     } catch (error) {
-        console.error('Error in getDashboardStats:', error);
+        console.error('Error in sp_GetDashboardStats:', error);
         res.status(500).json({ error: error.message });
     }
 };
