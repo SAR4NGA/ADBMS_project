@@ -70,6 +70,26 @@ VALUES ('admin', '$2b$10$UoWpB5o...', @AdminRoleID, 'System', 'Administrator');
 - **Password**: `admin1234` (Stored as a secure bcrypt hash)
 - **Assigned Role**: `Admin`
 
+### 2.4 Expense Infrastructure Triggers
+To support the new backend expense workflow, SQL Server triggers were added and applied from `backend/scripts/expenseInfrastructure.sql`.
+
+#### Trigger: `trg_ExpenseHeader_Audit`
+- Captures `INSERT`, `UPDATE`, and `DELETE` activity on `[ExpenseHeader]`.
+- Writes a JSON snapshot of the changed row into `[SystemAuditLog]`.
+- Keeps the audit trail in SQL Server even when changes are made outside the API.
+
+#### Trigger: `trg_ExpenseLineItem_RecalculateHeaderTotal`
+- Recalculates `[ExpenseHeader].[TotalAmount]` whenever related `[ExpenseLineItem]` rows change.
+- Ensures header totals remain aligned with the sum of line items.
+
+#### Backend API Added
+- `GET /api/expenses`
+- `GET /api/expenses/:id`
+- `POST /api/expenses`
+- `PUT /api/expenses/approve/:id`
+
+The API uses the existing expense tables and the trigger layer to keep the audit log and totals synchronized.
+
 ---
 
 ## Summary of DB Changes Summary Table
@@ -78,3 +98,5 @@ VALUES ('admin', '$2b$10$UoWpB5o...', @AdminRoleID, 'System', 'Administrator');
 | 2026-05-19 | Creation    | Table `[User]` | Created to isolate login credentials from general employee profiles. |
 | 2026-05-19 | Verification| Table `[Role]` | Confirmed existing schema and ensured the `Admin` role is present. |
 | 2026-05-19 | Seeding     | Record in `[User]` | Seeded default administrator account (`admin` / `admin1234`) with bcrypt hashing. |
+| 2026-05-19 | Trigger     | `trg_ExpenseHeader_Audit` | Added expense header audit logging to `[SystemAuditLog]`. |
+| 2026-05-19 | Trigger     | `trg_ExpenseLineItem_RecalculateHeaderTotal` | Added automatic header total recalculation from line items. |

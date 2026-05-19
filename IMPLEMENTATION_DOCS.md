@@ -9,14 +9,18 @@ This document contains a comprehensive breakdown of the architectural patterns, 
 Vaultix/
 ├── backend/
 │   ├── config/
-│   │   └── db.js            # SQL Server connection pool (uses Tedious + dotenv)
+│   │   ├── db.js            # SQL Server connection pool (uses Tedious + dotenv)
+│   │   └── env.js           # Shared environment loader with backend/root .env fallback
 │   ├── controllers/
 │   │   └── authController.js# Authentication routes & JWT generation + logger
+│   │   └── expenseController.js # Expenses listing, create, details, and approval flow
 │   ├── routes/
-│   │   └── authRoutes.js    # Auth router mapping /login
+│   │   ├── authRoutes.js    # Auth router mapping /login
+│   │   └── expenseRoutes.js # Expenses API router mapping /api/expenses
 │   ├── scripts/
 │   │   ├── initDb.js        # Automated migration, table schema sync & admin seeding
-│   │   └── inspectDb.js     # DB Inspector for metadata and column definition
+│   │   ├── inspectDb.js     # DB Inspector for metadata and column definition
+│   │   └── expenseInfrastructure.sql # SQL Server triggers for audit and totals
 │   ├── .env                 # Environment config (git-ignored)
 │   ├── .gitignore           # Backend git ignores
 │   ├── Dockerfile           # Alpine-based Node environment container
@@ -48,16 +52,28 @@ Vaultix/
 ### 2.1 Backend (Express.js)
 The backend acts as a stateless JSON API:
 - **Server Core (`server.js`)**: Configures Express, enables standard middleware parsing (URL encoded + JSON bodies), and binds Cross-Origin Resource Sharing (CORS) permissions.
-- **Database Layer (`config/db.js`)**: Leverages `mssql` connection pooling. Reuses a single active connection across the lifecycles of API queries, securing faster responses. Uses a robust `path`-resolved environment config loader.
+- **Database Layer (`config/db.js`)**: Leverages `mssql` connection pooling. Reuses a single active connection across the lifecycles of API queries, securing faster responses. Environment loading now falls back from `backend/.env` to the workspace root `.env`, so the same credentials file can support both the API and local tooling.
 - **Security**:
   - Passwords are encrypted using **Bcrypt** algorithm. Plaintext strings are never saved or displayed.
   - Generates secure **JSON Web Tokens (JWT)** valid for 24 hours, returning the user payload (ID, Username, Role) on validation.
+- **Expenses API**:
+  - `GET /api/expenses` returns the joined expense list for the expenses page.
+  - `GET /api/expenses/:id` returns a single expense with approval history and line items.
+  - `POST /api/expenses` creates a new expense header and optional line items inside a transaction.
+  - `PUT /api/expenses/approve/:id` inserts an approval log and updates the expense status.
 
 ### 2.2 Frontend (React.js + Vite)
 Built for speed and premium aesthetics:
 - **Dynamic CSS & Animation**: Pure vanilla CSS is implemented to support dark slate themes, vibrant radial background shifts, floating cards, custom HSL text gradients, and interactive focus states.
 - **Axios HTTP Client (`src/api/axios.js`)**: Intercepts outgoing requests to check if a JWT is stored in `localStorage`. If found, it automatically attaches it as an `Authorization: Bearer <token>` header, facilitating smooth backend verification.
 - **Routing & Client Security (`src/App.jsx`)**: Declares standard routes. Implements a React Router wrap-around `<ProtectedRoute>` to block unauthenticated requests. Users without a JWT are securely redirected to the `/login` screen.
+
+### 2.3 SQL Server Triggers
+To keep the database consistent with the new expenses workflow, SQL Server triggers were added in `backend/scripts/expenseInfrastructure.sql`:
+- `trg_ExpenseHeader_Audit` writes insert, update, and delete events for `ExpenseHeader` into `SystemAuditLog`.
+- `trg_ExpenseLineItem_RecalculateHeaderTotal` recomputes `ExpenseHeader.TotalAmount` from related line items.
+
+This keeps the audit trail centralized at the database layer and prevents header totals from drifting away from their line items.
 
 ---
 

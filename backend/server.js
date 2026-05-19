@@ -1,9 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
+const { loadEnvironment } = require('./config/env');
 const { connectDB } = require('./config/db');
 
-dotenv.config();
+loadEnvironment();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,6 +22,9 @@ const budgetRoutes = require('./routes/budget');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/budget', budgetRoutes);
+
+const expenseRoutes = require('./routes/expenseRoutes');
+app.use('/api/expenses', expenseRoutes);
 
 // Base route
 app.get('/', (req, res) => {
