@@ -26,6 +26,9 @@ app.use('/api/budget', budgetRoutes);
 const expenseRoutes = require('./routes/expenseRoutes');
 app.use('/api/expenses', expenseRoutes);
 
+const supplierRoutes = require('./routes/supplierRoutes');
+app.use('/api/suppliers', supplierRoutes);
+
 // Base route
 app.get('/', (req, res) => {
     res.send('Vaultix API is running...');

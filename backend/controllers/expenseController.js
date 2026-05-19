@@ -467,3 +467,59 @@ exports.approveExpense = async (req, res) => {
         res.status(500).json({ message: 'Server error while approving expense.' });
     }
 };
+
+exports.updateExpense = async (req, res) => {
+    const expenseId = Number.parseInt(req.params.id, 10);
+    if (Number.isNaN(expenseId)) return res.status(400).json({ message: 'Invalid expense ID.' });
+
+    try {
+        const { description, totalAmount, paymentMethodId, employeeId, supplierId } = req.body;
+        const pool = await getDBPool();
+        
+        // This is a simplified update that only updates the header
+        await pool.request()
+            .input('id', sql.Int, expenseId)
+            .input('desc', sql.VarChar(255), description)
+            .input('amount', sql.Decimal(18,2), totalAmount)
+            .input('paymentId', sql.Int, paymentMethodId)
+            .input('empId', sql.Int, employeeId)
+            .input('supId', sql.Int, supplierId || null)
+            .query(`
+                UPDATE ExpenseHeader 
+                SET Description = @desc, TotalAmount = @amount, PaymentMethodID = @paymentId, EmployeeID = @empId, SupplierID = @supId
+                WHERE ExpenseID = @id
+            `);
+            
+        res.json({ message: 'Expense updated successfully.' });
+    } catch (err) {
+        console.error('Error updating expense:', err);
+        res.status(500).json({ message: 'Server error while updating expense.' });
+    }
+};
+
+exports.deleteExpense = async (req, res) => {
+    const expenseId = Number.parseInt(req.params.id, 10);
+    if (Number.isNaN(expenseId)) return res.status(400).json({ message: 'Invalid expense ID.' });
+
+    try {
+        const pool = await getDBPool();
+        const transaction = new sql.Transaction(pool);
+        await transaction.begin();
+
+        try {
+            await new sql.Request(transaction).input('id', sql.Int, expenseId).query('DELETE FROM ExpenseLineItem WHERE ExpenseID = @id');
+            await new sql.Request(transaction).input('id', sql.Int, expenseId).query('DELETE FROM ApprovalLog WHERE ExpenseID = @id');
+            await new sql.Request(transaction).input('id', sql.Int, expenseId).query('DELETE FROM Receipt WHERE ExpenseID = @id');
+            await new sql.Request(transaction).input('id', sql.Int, expenseId).query('DELETE FROM ExpenseHeader WHERE ExpenseID = @id');
+            
+            await transaction.commit();
+            res.json({ message: 'Expense deleted successfully.' });
+        } catch (txErr) {
+            await transaction.rollback();
+            throw txErr;
+        }
+    } catch (err) {
+        console.error('Error deleting expense:', err);
+        res.status(500).json({ message: 'Server error while deleting expense.' });
+    }
+};

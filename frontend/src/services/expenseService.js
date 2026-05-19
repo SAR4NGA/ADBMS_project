@@ -43,6 +43,26 @@ export const addMultipleExpenses = async (expensesArray) => {
   }
 };
 
+export const updateExpense = async (id, expenseData) => {
+  try {
+    const response = await axios.put(`${API_URL}/expenses/${id}`, expenseData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    throw error;
+  }
+};
+
+export const deleteExpense = async (id) => {
+  try {
+    const response = await axios.delete(`${API_URL}/expenses/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting expense:', error);
+    throw error;
+  }
+};
+
 export const approveExpense = async (id, approvalData) => {
   try {
     const response = await axios.put(`${API_URL}/expenses/approve/${id}`, approvalData);

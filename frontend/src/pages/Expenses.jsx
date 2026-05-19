@@ -6,7 +6,8 @@ import Table from '../components/ui/Table';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { useExpenses } from '../hooks/useExpenses';
-import { Plus, Filter, Download } from 'lucide-react';
+import { deleteExpense } from '../services/expenseService';
+import { Plus, Filter, Download, Trash2, Edit2 } from 'lucide-react';
 
 const Expenses = () => {
   const navigate = useNavigate();
@@ -58,7 +59,28 @@ const Expenses = () => {
                 <Badge variant={getStatusVariant(expense.StatusName)}>{expense.StatusName}</Badge>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <button className="text-blue-600 hover:text-blue-900 font-medium">View</button>
+                <div className="flex gap-3">
+                  <button className="text-blue-600 hover:text-blue-900 font-medium">View</button>
+                  <button className="text-gray-600 hover:text-gray-900" title="Edit (Coming Soon)">
+                    <Edit2 size={16} />
+                  </button>
+                  <button 
+                    className="text-red-600 hover:text-red-900" 
+                    title="Delete"
+                    onClick={async () => {
+                      if(window.confirm('Are you sure you want to delete this expense?')) {
+                        try {
+                          await deleteExpense(expense.ExpenseID);
+                          window.location.reload(); // Quick refresh
+                        } catch (err) {
+                          alert('Failed to delete expense.');
+                        }
+                      }
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </td>
             </>
           )}

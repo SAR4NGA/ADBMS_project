@@ -7,5 +7,7 @@ router.get('/:id', expenseController.getExpenseById);
 router.post('/', expenseController.createExpense);
 router.post('/batch', expenseController.createMultipleExpenses);
 router.put('/approve/:id', expenseController.approveExpense);
+router.put('/:id', expenseController.updateExpense);
+router.delete('/:id', expenseController.deleteExpense);
 
 module.exports = router;
