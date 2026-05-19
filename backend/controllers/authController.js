@@ -3,63 +3,58 @@ const jwt = require('jsonwebtoken');
 const { getDBPool, sql } = require('../config/db');
 
 exports.login = async (req, res) => {
+    const timestamp = new Date().toISOString();
+    const ip = req.ip || req.connection.remoteAddress;
+    
     try {
         const { username, password } = req.body;
 
+        console.log(`[${timestamp}] [AUTH] [INFO] Login attempt received. Username: "${username || 'N/A'}" from IP: ${ip}`);
+
         if (!username || !password) {
+            console.log(`[${timestamp}] [AUTH] [WARN] Login failed: Missing credentials.`);
             return res.status(400).json({ message: 'Please provide both username and password.' });
         }
 
+        console.log(`[${timestamp}] [AUTH] [INFO] Connecting to database...`);
         const pool = await getDBPool();
         
-        // Query the Employee table joined with Role table
-        // We assume the schema has fields like Username, PasswordHash, RoleId etc.
+        console.log(`[${timestamp}] [AUTH] [INFO] Fetching user "${username}" from [User] table...`);
         const result = await pool.request()
             .input('username', sql.VarChar, username)
             .query(`
-                SELECT e.*, r.RoleName 
-                FROM Employee e
-                LEFT JOIN Role r ON e.RoleId = r.RoleId
-                WHERE e.Username = @username
+                SELECT u.*, r.RoleName 
+                FROM [User] u
+                LEFT JOIN [Role] r ON u.RoleID = r.RoleID
+                WHERE u.Username = @username
             `);
 
-        const employee = result.recordset[0];
+        const user = result.recordset[0];
 
-        if (!employee) {
+        if (!user) {
+            console.log(`[${timestamp}] [AUTH] [WARN] Login failed: User "${username}" not found.`);
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        // Compare password. 
-        // Note: For a real system, passwords should be hashed. 
-        // We'll assume the password might be hashed, but if it's plaintext for some reason, we could also do a direct check.
-        // Assuming bcrypt hashing is used as per standard:
-        let isMatch = false;
-        
-        // As a fallback for demonstration if passwords aren't actually hashed in the provided DB
-        if (employee.PasswordHash) {
-             isMatch = await bcrypt.compare(password, employee.PasswordHash);
-        } else if (employee.Password) {
-             // In case the column is named Password and plaintext for demo purposes
-             isMatch = (password === employee.Password);
-             // If they are hashed, it should be: isMatch = await bcrypt.compare(password, employee.Password);
-             // Best effort to handle bcrypt if it looks like a hash
-             if (employee.Password.startsWith('$2')) {
-                  isMatch = await bcrypt.compare(password, employee.Password);
-             }
-        }
+        console.log(`[${timestamp}] [AUTH] [INFO] User found. Verifying password for user "${username}"...`);
+        const isMatch = await bcrypt.compare(password, user.PasswordHash);
 
         if (!isMatch) {
+            console.log(`[${timestamp}] [AUTH] [WARN] Login failed: Incorrect password for user "${username}".`);
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
         // Generate JWT
         const payload = {
-            id: employee.EmployeeId || employee.Id,
-            username: employee.Username,
-            role: employee.RoleName || employee.Role
+            id: user.UserID,
+            username: user.Username,
+            role: user.RoleName
         };
 
+        console.log(`[${timestamp}] [AUTH] [INFO] Password verified. Generating JWT token for "${username}"...`);
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+        console.log(`[${timestamp}] [AUTH] [SUCCESS] User "${username}" (Role: ${user.RoleName}) logged in successfully.`);
 
         res.json({
             message: 'Login successful',
@@ -72,7 +67,7 @@ exports.login = async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Login error:', err);
+        console.error(`[${timestamp}] [AUTH] [ERROR] Exception occurred during login flow:`, err);
         res.status(500).json({ message: 'Server error during login.' });
     }
 };

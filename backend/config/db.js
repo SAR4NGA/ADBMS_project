@@ -1,7 +1,7 @@
 const sql = require('mssql');
+const path = require('path');
 const dotenv = require('dotenv');
-
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const dbConfig = {
     user: process.env.DB_USER,
