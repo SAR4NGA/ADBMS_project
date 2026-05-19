@@ -1,17 +1,37 @@
 const { getDBPool, sql } = require('../config/db');
 
+// GET all suppliers — rich query with contact info, address & total spend
+// (merged from analytics-backend branch)
 exports.getSuppliers = async (req, res) => {
     try {
         const pool = await getDBPool();
         const result = await pool.request().query(`
             SELECT 
-                s.SupplierID, 
-                s.SupplierName, 
-                s.RegisteredDate, 
-                s.SupplierTypeID, 
-                st.TypeName as Type 
+                s.SupplierID,
+                s.SupplierName,
+                s.RegisteredDate,
+                s.SupplierTypeID,
+                st.TypeName AS Category,
+                sa.City,
+                sa.Province,
+                (
+                    SELECT TOP 1 ContactValue 
+                    FROM SupplierContact 
+                    WHERE SupplierID = s.SupplierID AND ContactType = 'Email'
+                ) AS Email,
+                (
+                    SELECT TOP 1 ContactValue 
+                    FROM SupplierContact 
+                    WHERE SupplierID = s.SupplierID AND ContactType = 'Phone'
+                ) AS Phone,
+                ISNULL((
+                    SELECT SUM(TotalAmount) 
+                    FROM ExpenseHeader 
+                    WHERE SupplierID = s.SupplierID AND StatusID = 2 -- 'Approved'
+                ), 0) AS TotalSpend
             FROM Supplier s
-            LEFT JOIN SupplierType st ON s.SupplierTypeID = st.SupplierTypeID
+            JOIN SupplierType st ON s.SupplierTypeID = st.SupplierTypeID
+            LEFT JOIN SupplierAddress sa ON s.SupplierID = sa.SupplierID AND sa.IsPrimary = 1
             ORDER BY s.SupplierName ASC
         `);
         res.json(result.recordset);
@@ -21,11 +41,14 @@ exports.getSuppliers = async (req, res) => {
     }
 };
 
+// GET all supplier types
 exports.getSupplierTypes = async (req, res) => {
     try {
         const pool = await getDBPool();
         const result = await pool.request().query(`
-            SELECT SupplierTypeID, TypeName, SupplierCategoryID FROM SupplierType ORDER BY TypeName ASC
+            SELECT SupplierTypeID, TypeName, SupplierCategoryID 
+            FROM SupplierType 
+            ORDER BY TypeName ASC
         `);
         res.json(result.recordset);
     } catch (err) {
@@ -34,6 +57,7 @@ exports.getSupplierTypes = async (req, res) => {
     }
 };
 
+// POST create a new supplier
 exports.createSupplier = async (req, res) => {
     try {
         const { supplierName, registeredDate, supplierTypeId } = req.body;
@@ -62,12 +86,15 @@ exports.createSupplier = async (req, res) => {
     }
 };
 
+// PUT update an existing supplier
 exports.updateSupplier = async (req, res) => {
     try {
         const supplierId = Number.parseInt(req.params.id, 10);
         const { supplierName, supplierTypeId } = req.body;
 
-        if (Number.isNaN(supplierId)) return res.status(400).json({ message: 'Invalid supplier ID.' });
+        if (Number.isNaN(supplierId)) {
+            return res.status(400).json({ message: 'Invalid supplier ID.' });
+        }
 
         const pool = await getDBPool();
         await pool.request()
@@ -87,34 +114,45 @@ exports.updateSupplier = async (req, res) => {
     }
 };
 
+// DELETE a supplier (with safety check for associated expenses)
 exports.deleteSupplier = async (req, res) => {
     try {
         const supplierId = Number.parseInt(req.params.id, 10);
-        if (Number.isNaN(supplierId)) return res.status(400).json({ message: 'Invalid supplier ID.' });
-
-        const pool = await getDBPool();
-        
-        // First check if there are expenses attached
-        const check = await pool.request()
-            .input('id', sql.Int, supplierId)
-            .query('SELECT COUNT(*) as count FROM ExpenseHeader WHERE SupplierID = @id');
-            
-        if (check.recordset[0].count > 0) {
-            return res.status(400).json({ message: 'Cannot delete supplier because they have associated expenses.' });
+        if (Number.isNaN(supplierId)) {
+            return res.status(400).json({ message: 'Invalid supplier ID.' });
         }
 
-        // Delete from SupplierContact, SupplierAddress if exists, then Supplier
+        const pool = await getDBPool();
+
+        // Block deletion if supplier has linked expenses
+        const check = await pool.request()
+            .input('id', sql.Int, supplierId)
+            .query('SELECT COUNT(*) AS count FROM ExpenseHeader WHERE SupplierID = @id');
+
+        if (check.recordset[0].count > 0) {
+            return res.status(400).json({
+                message: 'Cannot delete supplier because they have associated expenses.'
+            });
+        }
+
+        // Delete contacts → addresses → supplier (in a transaction)
         const transaction = new sql.Transaction(pool);
         await transaction.begin();
         try {
-            await new sql.Request(transaction).input('id', sql.Int, supplierId).query('DELETE FROM SupplierContact WHERE SupplierID = @id');
-            await new sql.Request(transaction).input('id', sql.Int, supplierId).query('DELETE FROM SupplierAddress WHERE SupplierID = @id');
-            await new sql.Request(transaction).input('id', sql.Int, supplierId).query('DELETE FROM Supplier WHERE SupplierID = @id');
+            await new sql.Request(transaction)
+                .input('id', sql.Int, supplierId)
+                .query('DELETE FROM SupplierContact WHERE SupplierID = @id');
+            await new sql.Request(transaction)
+                .input('id', sql.Int, supplierId)
+                .query('DELETE FROM SupplierAddress WHERE SupplierID = @id');
+            await new sql.Request(transaction)
+                .input('id', sql.Int, supplierId)
+                .query('DELETE FROM Supplier WHERE SupplierID = @id');
             await transaction.commit();
             res.json({ message: 'Supplier deleted successfully.' });
-        } catch (err) {
+        } catch (innerErr) {
             await transaction.rollback();
-            throw err;
+            throw innerErr;
         }
     } catch (err) {
         console.error('Error deleting supplier:', err);

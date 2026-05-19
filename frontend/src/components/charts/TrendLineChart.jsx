@@ -1,57 +1,60 @@
-import React from 'react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Area,
-  AreaChart
+import {
+  LineChart, Line, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-const TrendLineChart = ({ data, dataKey = "amount", color = "#3b82f6" }) => {
+const COLORS = [
+  '#378ADD', '#1D9E75', '#7F77DD',
+  '#D85A30', '#BA7517'
+];
+
+export default function TrendLineChart({ data = [], categories }) {
+  // If no categories passed (e.g. Dashboard), auto-detect numeric keys from data
+  const resolvedCategories = categories
+    ? categories
+    : data.length > 0
+      ? Object.keys(data[0]).filter(k => k !== 'month' && k !== 'name')
+      : [];
+
+  // Dashboard uses 'name' as x-axis key; Analytics uses 'month'
+  const xKey = data.length > 0 && 'name' in data[0] ? 'name' : 'month';
+
   return (
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={color} stopOpacity={0.1}/>
-              <stop offset="95%" stopColor={color} stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-          <XAxis 
-            dataKey="name" 
-            axisLine={false} 
-            tickLine={false} 
+        <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis
+            dataKey={xKey}
+            axisLine={false}
+            tickLine={false}
             tick={{ fill: '#94a3b8', fontSize: 12 }}
             dy={10}
           />
-          <YAxis 
-            axisLine={false} 
-            tickLine={false} 
+          <YAxis
+            axisLine={false}
+            tickLine={false}
             tick={{ fill: '#94a3b8', fontSize: 12 }}
-            tickFormatter={(value) => `$${value}`}
+            tickFormatter={v => `$${v.toLocaleString()}`}
           />
-          <Tooltip 
+          <Tooltip
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-            formatter={(value) => [`$${value}`, 'Amount']}
+            formatter={(value, name) => [`$${value.toLocaleString()}`, name]}
           />
-          <Area 
-            type="monotone" 
-            dataKey={dataKey} 
-            stroke={color} 
-            strokeWidth={3}
-            fillOpacity={1} 
-            fill="url(#colorAmount)" 
-          />
-        </AreaChart>
+          <Legend />
+          {resolvedCategories.map((cat, i) => (
+            <Line
+              key={cat}
+              type="monotone"
+              dataKey={cat}
+              stroke={COLORS[i % COLORS.length]}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
+            />
+          ))}
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );
-};
-
-export default TrendLineChart;
+}
