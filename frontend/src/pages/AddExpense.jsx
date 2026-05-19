@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
-import { Plus, Trash2, ShoppingCart, Info, List, CreditCard, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Info, List, CreditCard, ArrowLeft, Users } from 'lucide-react';
 import { addMultipleExpenses } from '../services/expenseService';
 import { useExpenseLookups } from '../hooks/useExpenseLookups';
 
@@ -40,6 +40,9 @@ const AddExpense = () => {
   }, [formData.supplierId, suppliers]);
 
   const filteredCategories = useMemo(() => {
+    if (expenseMode === 'salary') {
+      return categories.filter(c => c.CategoryName === 'Salaries' || String(c.ExpenseCategoryID) === '3');
+    }
     if (expenseMode === 'general') {
       return categories.filter(c => ['General', 'Utility'].includes(c.Type) || !c.Type);
     }
@@ -61,6 +64,11 @@ const AddExpense = () => {
     const qty = Number(currentLineItem.quantity) || 1;
     const price = Number(currentLineItem.unitPrice) || 0;
     let categoryId = currentLineItem.categoryId;
+
+    if (expenseMode === 'salary') {
+      const salaryCat = filteredCategories.find(c => c.CategoryName === 'Salaries' || String(c.ExpenseCategoryID) === '3');
+      if (salaryCat) categoryId = salaryCat.ExpenseCategoryID;
+    }
 
     if (expenseMode === 'supplier') {
       if (!currentLineItem.itemId || qty <= 0 || price < 0) {
@@ -125,7 +133,11 @@ const AddExpense = () => {
     }
 
     const newExpense = {
-      description: formData.description || (expenseMode === 'supplier' ? `Purchase from ${selectedSupplier?.SupplierName}` : 'General Expense'),
+      description: formData.description || (
+        expenseMode === 'supplier' ? `Purchase from ${selectedSupplier?.SupplierName}` : 
+        expenseMode === 'salary' ? `Salary payment for ${employees.find(e => e.EmployeeID === Number(formData.employeeId))?.EmployeeName}` :
+        'General Expense'
+      ),
       totalAmount: currentTotalAmount,
       supplierId: expenseMode === 'supplier' ? Number(formData.supplierId) : null,
       employeeId: Number(formData.employeeId),
@@ -210,6 +222,13 @@ const AddExpense = () => {
             >
               <List size={18} /> General / Internal
             </button>
+            <button
+              type="button"
+              onClick={() => { setExpenseMode('salary'); setFormData(prev => ({ ...prev, lineItems: [], supplierId: '' })); }}
+              className={`flex-1 py-3 flex items-center justify-center gap-2 text-sm font-semibold rounded-md transition-all ${expenseMode === 'salary' ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-200'}`}
+            >
+              <Users size={18} /> Employee Salary
+            </button>
           </div>
 
           <div className="space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -222,7 +241,9 @@ const AddExpense = () => {
                 <input type="date" value={formData.expenseDate} onChange={e => setFormData({...formData, expenseDate: e.target.value})} className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Employee (Filing)</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  {expenseMode === 'salary' ? 'Employee (Paid To)' : 'Employee (Filing)'}
+                </label>
                 <select value={formData.employeeId} onChange={e => setFormData({...formData, employeeId: e.target.value})} className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white">
                   <option value="">Select Employee</option>
                   {employees?.map(e => <option key={e.EmployeeID} value={e.EmployeeID}>{e.EmployeeName}</option>)}
@@ -271,21 +292,25 @@ const AddExpense = () => {
                   </select>
                 </div>
               )}
-              <div className={expenseMode === 'general' ? 'col-span-2' : 'col-span-2'}>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Category</label>
-                <select value={currentLineItem.categoryId} onChange={e => setCurrentLineItem({...currentLineItem, categoryId: e.target.value})} className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white">
-                  <option value="">Select Category</option>
-                  {filteredCategories.map(c => <option key={c.ExpenseCategoryID} value={c.ExpenseCategoryID}>{c.CategoryName}</option>)}
-                </select>
-              </div>
+              {expenseMode !== 'salary' && (
+                <div className={expenseMode === 'general' ? 'col-span-2' : 'col-span-2'}>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Category</label>
+                  <select value={currentLineItem.categoryId} onChange={e => setCurrentLineItem({...currentLineItem, categoryId: e.target.value})} className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <option value="">Select Category</option>
+                    {filteredCategories.map(c => <option key={c.ExpenseCategoryID} value={c.ExpenseCategoryID}>{c.CategoryName}</option>)}
+                  </select>
+                </div>
+              )}
               {expenseMode === 'supplier' && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Qty</label>
                   <input type="number" min="1" value={currentLineItem.quantity} onChange={e => setCurrentLineItem({...currentLineItem, quantity: e.target.value})} className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white" />
                 </div>
               )}
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">{expenseMode === 'supplier' ? 'Unit Price' : 'Amount'}</label>
+              <div className={expenseMode === 'salary' ? 'col-span-4' : ''}>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  {expenseMode === 'supplier' ? 'Unit Price' : expenseMode === 'salary' ? 'Salary Amount' : 'Amount'}
+                </label>
                 <input type="number" min="0" step="0.01" value={currentLineItem.unitPrice} onChange={e => setCurrentLineItem({...currentLineItem, unitPrice: e.target.value})} className="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white" />
               </div>
               
@@ -376,8 +401,10 @@ const AddExpense = () => {
                     </button>
                     <div className="flex justify-between items-start mb-3 pr-8">
                       <div>
-                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-gray-900 bg-blue-400 uppercase tracking-wider mb-2">{exp.supplierId ? 'Supplier' : 'Internal'}</span>
-                        <h4 className="font-bold text-gray-100 text-base">{supName || 'General Internal Expense'}</h4>
+                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-gray-900 bg-blue-400 uppercase tracking-wider mb-2">
+                          {exp.supplierId ? 'Supplier' : exp.description.includes('Salary') ? 'Employee Compensation' : 'Internal'}
+                        </span>
+                        <h4 className="font-bold text-gray-100 text-base">{supName || exp.description || 'General Internal Expense'}</h4>
                       </div>
                       <div className="text-right">
                         <span className="block font-black text-xl text-white">Rs. {exp.totalAmount.toFixed(2)}</span>
