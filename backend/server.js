@@ -17,20 +17,18 @@ app.use(express.urlencoded({ extended: true }));
 connectDB();
 
 // Routes
-const authRoutes = require('./routes/authRoutes');
-const budgetRoutes = require('./routes/budget');
+const authRoutes      = require('./routes/authRoutes');
+const budgetRoutes    = require('./routes/budget');
 const analyticsRoutes = require('./routes/analytics');
-const supplierRoutes = require('./routes/suppliers');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const expenseRoutes   = require('./routes/expenseRoutes');
+const supplierRoutes  = require('./routes/supplierRoutes');
 
-app.use('/api/auth', authRoutes);
-app.use('/api/budget', budgetRoutes);
+app.use('/api/auth',      authRoutes);
+app.use('/api/budget',    budgetRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/suppliers', supplierRoutes);
-
-const expenseRoutes = require('./routes/expenseRoutes');
-app.use('/api/expenses', expenseRoutes);
-
-const supplierRoutes = require('./routes/supplierRoutes');
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/expenses',  expenseRoutes);
 app.use('/api/suppliers', supplierRoutes);
 
 // Base route

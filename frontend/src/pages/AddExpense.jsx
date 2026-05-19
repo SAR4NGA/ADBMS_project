@@ -44,12 +44,11 @@ const AddExpense = () => {
       return categories.filter(c => c.CategoryName === 'Salaries' || String(c.ExpenseCategoryID) === '3');
     }
     if (expenseMode === 'general') {
-      return categories.filter(c => ['General', 'Utility'].includes(c.Type) || !c.Type);
+      // Show general items like Utilities, Rent, Transport, etc. Do not show Stock Purchase for general expenses.
+      return categories.filter(c => c.CategoryName !== 'Stock Purchase' && c.CategoryName !== 'Salaries');
     }
-    if (selectedSupplier && selectedSupplier.Type) {
-      return categories.filter(c => c.Type === selectedSupplier.Type || c.Type === 'Inventory');
-    }
-    return categories;
+    // Supplier mode should generally default to Stock Purchase, or all categories can be available for selection if needed
+    return categories.filter(c => c.CategoryName !== 'Salaries');
   }, [categories, expenseMode, selectedSupplier]);
 
   const filteredItems = useMemo(() => {
