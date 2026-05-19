@@ -1,40 +1,24 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
-
-// Protected Route wrapper component
-const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  
-  if (!token) {
-    // If no token exists, redirect to login page
-    return <Navigate to="/login" replace />;
-  }
-
-  // If authenticated, render the child components
-  return children;
-};
+import Expenses from './pages/Expenses';
+import Budget from './pages/Budget';
+import Suppliers from './pages/Suppliers';
+import Approvals from './pages/Approvals';
+import Analytics from './pages/Analytics';
+import Login from './pages/Login';
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Route */}
         <Route path="/login" element={<Login />} />
-
-        {/* Protected Routes */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-
-        {/* Default Redirect */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/expenses" element={<Expenses />} />
+        <Route path="/budget" element={<Budget />} />
+        <Route path="/suppliers" element={<Suppliers />} />
+        <Route path="/approvals" element={<Approvals />} />
+        <Route path="/analytics" element={<Analytics />} />
       </Routes>
     </Router>
   );
