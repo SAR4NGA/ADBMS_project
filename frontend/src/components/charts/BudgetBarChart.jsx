@@ -33,7 +33,7 @@ const BudgetBarChart = ({ data }) => {
           <Tooltip 
             cursor={{ fill: 'transparent' }}
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-            formatter={(value) => [`$${value}`, 'Amount']}
+            formatter={(value) => [`Rs. ${value.toLocaleString()}`, 'Amount']}
           />
           <Bar dataKey="spent" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20}>
             {data.map((entry, index) => (
