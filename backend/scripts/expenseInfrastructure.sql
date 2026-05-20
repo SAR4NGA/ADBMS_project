@@ -139,7 +139,7 @@ BEGIN
     BEGIN
         INSERT INTO SystemAuditLog (TableName, ActionType, RecordID, OldValue, NewValue, ChangedDate)
         SELECT 'Supplier', 'INSERT', i.SupplierID, NULL,
-            (SELECT i.SupplierID, i.SupplierName, i.ContactEmail FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+            (SELECT i.SupplierID, i.SupplierName, i.RegisteredDate FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
             GETDATE()
         FROM inserted i;
         RETURN;
@@ -149,8 +149,8 @@ BEGIN
     BEGIN
         INSERT INTO SystemAuditLog (TableName, ActionType, RecordID, OldValue, NewValue, ChangedDate)
         SELECT 'Supplier', 'UPDATE', i.SupplierID,
-            (SELECT d.SupplierID, d.SupplierName, d.ContactEmail FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
-            (SELECT i.SupplierID, i.SupplierName, i.ContactEmail FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+            (SELECT d.SupplierID, d.SupplierName, d.RegisteredDate FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+            (SELECT i.SupplierID, i.SupplierName, i.RegisteredDate FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
             GETDATE()
         FROM inserted i INNER JOIN deleted d ON d.SupplierID = i.SupplierID;
         RETURN;
@@ -160,7 +160,7 @@ BEGIN
     BEGIN
         INSERT INTO SystemAuditLog (TableName, ActionType, RecordID, OldValue, NewValue, ChangedDate)
         SELECT 'Supplier', 'DELETE', d.SupplierID,
-            (SELECT d.SupplierID, d.SupplierName, d.ContactEmail FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+            (SELECT d.SupplierID, d.SupplierName, d.RegisteredDate FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
             NULL, GETDATE()
         FROM deleted d;
     END

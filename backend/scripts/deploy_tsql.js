@@ -38,7 +38,7 @@ GROUP BY ec.ExpenseCategoryID, ec.CategoryName, YEAR(d.FullDate), MONTH(d.FullDa
 SELECT
     s.SupplierID,
     s.SupplierName,
-    s.ContactEmail,
+    s.RegisteredDate,
     COUNT(DISTINCT e.ExpenseID)                AS TotalOrders,
     ISNULL(SUM(e.TotalAmount), 0)              AS TotalValue,
     ISNULL(AVG(e.TotalAmount), 0)              AS AvgOrderValue,
@@ -48,7 +48,7 @@ SELECT
 FROM Supplier s
 LEFT JOIN ExpenseHeader e ON s.SupplierID = e.SupplierID
 LEFT JOIN DateDimension d ON e.DateKey    = d.DateKey
-GROUP BY s.SupplierID, s.SupplierName, s.ContactEmail;`,
+GROUP BY s.SupplierID, s.SupplierName, s.RegisteredDate;`,
 
 `CREATE OR ALTER VIEW vw_MonthlyBudgetVsActual AS
 SELECT
@@ -379,7 +379,7 @@ BEGIN
     SELECT
         sp.SupplierID,
         sp.SupplierName,
-        sp.ContactEmail,
+        sp.RegisteredDate,
         sp.TotalOrders,
         sp.TotalValue,
         sp.AvgOrderValue,
@@ -481,7 +481,7 @@ BEGIN
             'INSERT',
             i.SupplierID,
             NULL,
-            (SELECT i.SupplierID, i.SupplierName, i.ContactEmail FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+            (SELECT i.SupplierID, i.SupplierName, i.RegisteredDate FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
             GETDATE()
         FROM inserted i;
         RETURN;
@@ -495,8 +495,8 @@ BEGIN
             'Supplier',
             'UPDATE',
             i.SupplierID,
-            (SELECT d.SupplierID, d.SupplierName, d.ContactEmail FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
-            (SELECT i.SupplierID, i.SupplierName, i.ContactEmail FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+            (SELECT d.SupplierID, d.SupplierName, d.RegisteredDate FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+            (SELECT i.SupplierID, i.SupplierName, i.RegisteredDate FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
             GETDATE()
         FROM inserted i
         INNER JOIN deleted d ON d.SupplierID = i.SupplierID;
@@ -511,7 +511,7 @@ BEGIN
             'Supplier',
             'DELETE',
             d.SupplierID,
-            (SELECT d.SupplierID, d.SupplierName, d.ContactEmail FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+            (SELECT d.SupplierID, d.SupplierName, d.RegisteredDate FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
             NULL,
             GETDATE()
         FROM deleted d;
