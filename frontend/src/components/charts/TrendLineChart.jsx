@@ -35,11 +35,13 @@ export default function TrendLineChart({ data = [], categories }) {
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#94a3b8', fontSize: 12 }}
-            tickFormatter={v => `$${v.toLocaleString()}`}
+            tickFormatter={v => `Rs. ${v.toLocaleString()}`}
+            domain={[0, dataMax => dataMax > 0 ? Math.ceil(dataMax * 1.2) : 1000]}
           />
           <Tooltip
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-            formatter={(value, name) => [`$${value.toLocaleString()}`, name]}
+            wrapperStyle={{ zIndex: 1000 }}
+            formatter={(value, name) => [`Rs. ${value.toLocaleString()}`, name]}
           />
           <Legend />
           {resolvedCategories.map((cat, i) => (

@@ -1,5 +1,15 @@
 import api from '../api/axios';
 
+export const getAnomalies = async (year, month) => {
+  try {
+    const res = await api.get(`/analytics/anomalies?year=${year}&month=${month}`);
+    return res.data;
+  } catch (error) {
+    console.error('Anomalies fetch failed:', error);
+    return { year, month, anomalies: [] };
+  }
+};
+
 export const getExpenseTrends = async (year) => {
   try {
     const res = await api.get(`/analytics/trends?year=${year}`);
