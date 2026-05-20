@@ -8,9 +8,10 @@ loadEnvironment();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Allowed origins: GitHub Pages (production) + localhost (development)
+// Allowed origins: GitHub Pages (production) + localhost (development) + Cloudflare Pages
 const allowedOrigins = [
     'https://sar4nga.github.io',
+    'https://adbms-project.pages.dev',
     'http://localhost:5173',
     'http://localhost:3000',
 ];
