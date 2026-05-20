@@ -234,8 +234,10 @@ BEGIN
     WHERE e.StatusID = 2
     GROUP BY pm.MethodName;
 
-    -- 6. Alerts (UNION)
-    SELECT TOP 5 Message, AlertDate AS DateEvent, 'Budget Alert' AS EventType FROM BudgetAlert
+    -- 6. Alerts (UNION) — current period only
+    SELECT TOP 5 Message, AlertDate AS DateEvent, 'Budget Alert' AS EventType
+    FROM BudgetAlert
+    WHERE YEAR(AlertDate) = @ActiveYear AND MONTH(AlertDate) = @ActiveMonth
     UNION ALL
     SELECT TOP 5 'Pending expense over Rs. 50,000' AS Message, d.FullDate AS DateEvent, 'System Notice' AS EventType 
     FROM ExpenseHeader e JOIN DateDimension d ON e.DateKey = d.DateKey 

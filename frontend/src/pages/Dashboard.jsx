@@ -60,10 +60,10 @@ const Dashboard = () => {
     { label: 'Pending Approvals', value: `${stats.pendingApprovals} (Rs. ${(stats.pendingApprovalsValue || 0).toLocaleString()})`, icon: <Clock size={24}/>, color: 'text-orange-600', bg: 'bg-orange-100' },
   ];
 
-  // Calculate dynamic health score
+  // Calculate dynamic health score (current-period alerts only come from the SP)
   const healthScore = Math.max(
     0,
-    100 - (alertsList.filter(a => a.EventType === 'Budget Alert').length * 25) - (alertsList.filter(a => a.EventType === 'System Notice').length * 15)
+    100 - (alertsList.filter(a => a.EventType === 'Budget Alert').length * 20) - (alertsList.filter(a => a.EventType === 'System Notice').length * 10)
   );
 
   return (
