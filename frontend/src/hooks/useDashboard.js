@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 
 export function useDashboard() {
   const [data, setData] = useState({
@@ -13,7 +13,7 @@ export function useDashboard() {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/dashboard');
+      const response = await api.get('/dashboard');
       setData(response.data);
       setError(null);
     } catch (err) {

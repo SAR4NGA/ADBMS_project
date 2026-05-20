@@ -1,11 +1,9 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api';
+import api from '../api/axios';
 
 // Expense list and details
 export const getExpenses = async () => {
   try {
-    const response = await axios.get(`${API_URL}/expenses`);
+    const response = await api.get(`/expenses`);
     return response.data;
   } catch (error) {
     console.error('Error fetching expenses:', error);
@@ -15,7 +13,7 @@ export const getExpenses = async () => {
 
 export const getExpenseById = async (id) => {
   try {
-    const response = await axios.get(`${API_URL}/expenses/${id}`);
+    const response = await api.get(`/expenses/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching expense details:', error);
@@ -25,7 +23,7 @@ export const getExpenseById = async (id) => {
 
 export const addExpense = async (expenseData) => {
   try {
-    const response = await axios.post(`${API_URL}/expenses`, expenseData);
+    const response = await api.post(`/expenses`, expenseData);
     return response.data;
   } catch (error) {
     console.error('Error adding expense:', error);
@@ -35,7 +33,7 @@ export const addExpense = async (expenseData) => {
 
 export const addMultipleExpenses = async (expensesArray) => {
   try {
-    const response = await axios.post(`${API_URL}/expenses/batch`, { expenses: expensesArray });
+    const response = await api.post(`/expenses/batch`, { expenses: expensesArray });
     return response.data;
   } catch (error) {
     console.error('Error adding multiple expenses:', error);
@@ -45,7 +43,7 @@ export const addMultipleExpenses = async (expensesArray) => {
 
 export const updateExpense = async (id, expenseData) => {
   try {
-    const response = await axios.put(`${API_URL}/expenses/${id}`, expenseData);
+    const response = await api.put(`/expenses/${id}`, expenseData);
     return response.data;
   } catch (error) {
     console.error('Error updating expense:', error);
@@ -55,7 +53,7 @@ export const updateExpense = async (id, expenseData) => {
 
 export const deleteExpense = async (id) => {
   try {
-    const response = await axios.delete(`${API_URL}/expenses/${id}`);
+    const response = await api.delete(`/expenses/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting expense:', error);
@@ -65,7 +63,7 @@ export const deleteExpense = async (id) => {
 
 export const approveExpense = async (id, approvalData) => {
   try {
-    const response = await axios.put(`${API_URL}/expenses/approve/${id}`, approvalData);
+    const response = await api.put(`/expenses/approve/${id}`, approvalData);
     return response.data;
   } catch (error) {
     console.error('Error approving expense:', error);
