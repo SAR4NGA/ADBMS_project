@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://20.244.10.53:5000/api', // Explicitly hardcoded to remote VM
+    baseURL: 'http://20.244.10.53:5001/api', // Explicitly hardcoded to remote VM
     headers: {
         'Content-Type': 'application/json'
     }
