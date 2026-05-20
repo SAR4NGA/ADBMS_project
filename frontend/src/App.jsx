@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Expenses from './pages/Expenses';
 import AddExpense from './pages/AddExpense';
@@ -11,7 +11,8 @@ import Login from './pages/Login';
 
 function App() {
   return (
-    <Router>
+    // import.meta.env.BASE_URL will automatically grab '/ADBMS_project/' from your vite.config.js
+    <Router basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Dashboard />} />
