@@ -1,10 +1,8 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api';
+import api from '../api/axios';
 
 export const getBudgets = async () => {
   try {
-    const response = await axios.get(`${API_URL}/budget`);
+    const response = await api.get(`/budget`);
     return response.data;
   } catch (error) {
     console.error('Error fetching budgets:', error);
@@ -14,7 +12,7 @@ export const getBudgets = async () => {
 
 export const createBudget = async (data) => {
   try {
-    const response = await axios.post(`${API_URL}/budget`, data);
+    const response = await api.post(`/budget`, data);
     return response.data;
   } catch (error) {
     console.error('Error creating budget:', error);
@@ -24,7 +22,7 @@ export const createBudget = async (data) => {
 
 export const updateBudget = async (id, data) => {
   try {
-    const response = await axios.put(`${API_URL}/budget/${id}`, data);
+    const response = await api.put(`/budget/${id}`, data);
     return response.data;
   } catch (error) {
     console.error('Error updating budget:', error);
@@ -34,7 +32,7 @@ export const updateBudget = async (id, data) => {
 
 export const deleteBudget = async (id) => {
   try {
-    const response = await axios.delete(`${API_URL}/budget/${id}`);
+    const response = await api.delete(`/budget/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting budget:', error);
