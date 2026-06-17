@@ -53,6 +53,7 @@ GROUP BY s.SupplierID, s.SupplierName, s.RegisteredDate;`,
 `CREATE OR ALTER VIEW vw_MonthlyBudgetVsActual AS
 SELECT
     b.BudgetID,
+    b.ExpenseCategoryID,
     ec.CategoryName,
     b.BudgetMonth,
     b.BudgetYear,
@@ -344,6 +345,7 @@ BEGIN
     -- Uses CROSS APPLY to call fn_ClassifyBudgetStatus and fn_PredictNextMonthCategorySpend per row.
     SELECT
         mbv.BudgetID,
+        mbv.ExpenseCategoryID,
         mbv.CategoryName,
         mbv.BudgetMonth,
         mbv.BudgetYear,
