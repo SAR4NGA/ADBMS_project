@@ -476,11 +476,19 @@ exports.updateExpense = async (req, res) => {
     try {
         const { description, totalAmount, paymentMethodId, employeeId, supplierId } = req.body;
         const pool = await getDBPool();
-        
+
+        const existingExpense = await fetchExpenseById(pool, expenseId);
+        if (!existingExpense) {
+            return res.status(404).json({ message: 'Expense not found.' });
+        }
+
+        const oldTotal = existingExpense.TotalAmount;
+        const newTotal = Number(totalAmount);
+
         await pool.request()
             .input('id', sql.Int, expenseId)
             .input('desc', sql.VarChar(255), description)
-            .input('amount', sql.Decimal(18,2), totalAmount)
+            .input('amount', sql.Decimal(18,2), newTotal)
             .input('paymentId', sql.Int, paymentMethodId)
             .input('empId', sql.Int, employeeId)
             .input('supId', sql.Int, supplierId || null)
@@ -489,7 +497,32 @@ exports.updateExpense = async (req, res) => {
                 SET Description = @desc, TotalAmount = @amount, PaymentMethodID = @paymentId, EmployeeID = @empId, SupplierID = @supId
                 WHERE ExpenseID = @id
             `);
-        
+
+        const lineItemsResult = await pool.request()
+            .input('expenseId', sql.Int, expenseId)
+            .query(`
+                SELECT LineItemID, UnitPrice
+                FROM ExpenseLineItem
+                WHERE ExpenseID = @expenseId
+            `);
+
+        const oldLineItems = lineItemsResult.recordset;
+        const scaleFactor = oldTotal > 0 ? newTotal / oldTotal : 0;
+
+        if (scaleFactor > 0 && oldLineItems.length > 0) {
+            for (const item of oldLineItems) {
+                const newUnitPrice = parseFloat((item.UnitPrice * scaleFactor).toFixed(2));
+                await pool.request()
+                    .input('lineItemId', sql.Int, item.LineItemID)
+                    .input('unitPrice', sql.Decimal(18, 2), newUnitPrice)
+                    .query(`
+                        UPDATE ExpenseLineItem
+                        SET UnitPrice = @unitPrice
+                        WHERE LineItemID = @lineItemId
+                    `);
+            }
+        }
+
         const updatedExpense = await fetchExpenseById(pool, expenseId);
         if (!updatedExpense) {
             return res.status(404).json({ message: 'Expense not found after update.' });
