@@ -78,12 +78,12 @@ LEFT JOIN vw_CategorySpendSummary css
     @Month INT,
     @Year INT
 )
-RETURNS DECIMAL(5,2)
+RETURNS DECIMAL(18,2)
 AS
 BEGIN
     DECLARE @Budget DECIMAL(18,2) = 0;
     DECLARE @Spent DECIMAL(18,2) = 0;
-    DECLARE @Utilization DECIMAL(5,2) = 0;
+    DECLARE @Utilization DECIMAL(18,2) = 0;
 
     SELECT @Budget = AllocatedAmount FROM Budget 
     WHERE ExpenseCategoryID = @CategoryID AND BudgetMonth = @Month AND BudgetYear = @Year;
@@ -160,7 +160,7 @@ END;`,
 RETURNS VARCHAR(10)
 AS
 BEGIN
-    DECLARE @Utilization DECIMAL(5,2);
+    DECLARE @Utilization DECIMAL(18,2);
     DECLARE @Status      VARCHAR(10);
 
     SET @Utilization = dbo.fn_GetBudgetUtilization(@CategoryID, @Month, @Year);
